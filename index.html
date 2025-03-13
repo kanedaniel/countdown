@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Countdown Timer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            /* CUSTOMIZATION: Change background color here */
+            background-color: #000000;
+            overflow: hidden;
+        }
+        
+        #countdown {
+            /* CUSTOMIZATION: Change text color here */
+            color: #FFFFFF;
+            /* CUSTOMIZATION: Change size here (larger number = bigger text) */
+            font-size: 60vw;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* CUSTOMIZATION: Choose background effect by uncommenting ONE of these sections */
+        
+        /* Option 1: Rainbow gradient background */
+        /*
+        body {
+            background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        */
+        
+        /* Option 2: Pulsing number effect */
+        /*
+        #countdown {
+            animation: pulse 2s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        */
+        
+        /* Option 3: Red flashing on final 3 seconds */
+        
+        .warning {
+            animation: flash 0.5s ease infinite;
+        }
+        
+        @keyframes flash {
+            0% { color: #FFFFFF; }
+            50% { color: #FF0000; }
+            100% { color: #FFFFFF; }
+        }
+        
+        
+        /* Control panel (only for iPhone) */
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            margin: 0 10px;
+        }
+        
+        /* Hide controls on the display device */
+        .display-mode #controls {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="countdown">10</div>
+    
+    <div id="controls">
+        <button id="startButton">Start Countdown</button>
+        <button id="resetButton">Reset</button>
+        <button id="displayModeButton">Open Display View</button>
+    </div>
+
+    <script>
+        // Basic countdown functionality
+        let countdown = 10;
+        let timer;
+        let isRunning = false;
+        
+        const countdownElement = document.getElementById('countdown');
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        const displayModeButton = document.getElementById('displayModeButton');
+        
+        // Check for display mode in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('mode') === 'display') {
+            document.body.classList.add('display-mode');
+        }
+        
+        function updateDisplay() {
+            countdownElement.textContent = countdown;
+            
+            // Add warning class for final 3 seconds
+            if (countdown <= 3) {
+                countdownElement.classList.add('warning');
+            } else {
+                countdownElement.classList.remove('warning');
+            }
+        }
+        
+        function startCountdown() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            countdown = 10;
+            updateDisplay();
+            
+            timer = setInterval(() => {
+                countdown--;
+                updateDisplay();
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    isRunning = false;
+                    setTimeout(() => {
+                        resetCountdown();
+                    }, 1000);
+                }
+            }, 1000);
+        }
+        
+        function resetCountdown() {
+            clearInterval(timer);
+            isRunning = false;
+            countdown = 10;
+            updateDisplay();
+        }
+        
+        startButton.addEventListener('click', startCountdown);
+        resetButton.addEventListener('click', resetCountdown);
+        
+        // Display mode button - opens a new window for display
+        displayModeButton.addEventListener('click', function() {
+            const displayUrl = window.location.href.split('?')[0] + '?mode=display';
+            window.open(displayUrl, '_blank');
+        });
+        
+        // Sync functionality between devices using localStorage
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'countdownSync') {
+                const data = JSON.parse(e.newValue);
+                if (data.action === 'start') {
+                    startCountdown();
+                } else if (data.action === 'reset') {
+                    resetCountdown();
+                }
+            }
+        });
+        
+        // Update localStorage to sync between devices
+        startButton.addEventListener('click', function() {
+            localStorage.setItem('countdownSync', JSON.stringify({
+                action: 'start',
+                timestamp: Date.now()
+            }));
+        });
+        
+        resetButton.addEventListener('click', function() {
+            localStorage.setItem('countdownSync', JSON.stringify({
+                action: 'reset',
+                timestamp: Date.now()
+            }));
+        });
+    </script>
+</body>
+</html>
