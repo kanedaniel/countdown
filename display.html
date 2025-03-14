@@ -1,1 +1,52 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Display</title>
+    <style>
+        body {
+            background-color: #0d54ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #countdown {
+            font-size: 20vw;
+            color: white;
+            text-align: center;
+            transition: color 0.1s;
+        }
+        
+        .flash-red {
+            color: red !important;
+        }
+        
+        #stop-message {
+            font-size: 20vw;
+            color: white;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="countdown">10</div>
+    <div id="stop-message">STOP</div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Display Logic -->
+    <script src="display.js"></script>
+</body>
+</html>
