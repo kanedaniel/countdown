@@ -1,431 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remote Countdown Timer</title>
+    <title>10-Second Countdown</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: Arial, sans-serif;
             margin: 0;
-            background-color: #000000;
-            overflow: hidden;
-        }
-        
-        #countdown {
-            color: #FFFFFF;
-            font-size: 60vw;
-            font-weight: bold;
-            text-align: center;
-            line-height: 1;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .warning {
-            animation: flash 0.5s ease infinite;
-        }
-        
-        @keyframes flash {
-            0% { color: #FFFFFF; }
-            50% { color: #FF0000; }
-            100% { color: #FFFFFF; }
-        }
-        
-        #controls {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: center;
-            padding: 10px;
-        }
-        
-        button {
-            padding: 15px 30px;
-            font-size: 18px;
-            background-color: #007AFF;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            margin: 0 10px;
-        }
-        
-        #setup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0,0,0,0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            text-align: center;
         }
         
-        #sessionInput {
-            padding: 10px;
-            font-size: 18px;
-            width: 80%;
+        h1 {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
             max-width: 300px;
-            margin-bottom: 20px;
-            text-align: center;
         }
         
-        #joinSessionButton {
-            margin-bottom: 20px;
-        }
-        
-        #statusText {
+        .button {
+            padding: 16px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: none;
+            background-color: #0d54ff;
             color: white;
-            text-align: center;
-            max-width: 80%;
-            margin-top: 10px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
-        #status {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            font-size: 12px;
-            color: white;
-            background-color: rgba(0,0,0,0.5);
-            border-radius: 15px;
+        .display-button {
+            background-color: #28a745;
         }
         
-        #timerUrl {
-            word-break: break-all;
-            color: #007AFF;
-            background-color: rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 5px;
-            max-width: 80%;
-            display: none;
-            text-align: center;
+        .controller-button {
+            background-color: #dc3545;
         }
         
-        .display-mode #controls {
-            display: none;
+        .instructions {
+            margin-top: 30px;
+            padding: 16px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            max-width: 500px;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
-    <div id="status">Disconnected</div>
-    <div id="countdown">10</div>
+    <h1>10-Second Countdown Timer</h1>
     
-    <div id="controls">
-        <button id="startButton">Start Countdown</button>
-        <button id="resetButton">Reset</button>
+    <div class="button-container">
+        <a href="display.html" class="button display-button">DISPLAY VIEW (iPad)</a>
+        <a href="controller.html" class="button controller-button">CONTROLLER VIEW (iPhone)</a>
     </div>
     
-    <div id="setup">
-        <h2 style="color: white; margin-bottom: 20px;">Timer Setup</h2>
-        
-        <div id="setupMode">
-            <button id="controllerButton" style="margin-bottom: 15px; width: 200px;">Controller (iPhone)</button>
-            <button id="displayButton" style="width: 200px;">Display (iPad)</button>
-        </div>
-        
-        <div id="controllerSetup" style="display: none; text-align: center;">
-            <p id="instructionText" style="color: white; margin-bottom: 20px;">
-                Generate a unique URL for your display device:
-            </p>
-            <button id="generateUrlButton">Generate Display URL</button>
-            <div id="timerUrl"></div>
-            <p id="copyText" style="color: white; margin-top: 15px;">
-                Copy this URL to your iPad and open it in a browser.
-            </p>
-            <button id="continueButton" style="margin-top: 15px;">Continue to Controller</button>
-        </div>
-        
-        <div id="displaySetup" style="display: none; text-align: center;">
-            <p style="color: white; margin-bottom: 20px;">
-                Enter the Display Code from your controller:
-            </p>
-            <input type="text" id="sessionInput" placeholder="Enter 6-digit code" maxlength="6">
-            <button id="joinSessionButton">Join Display Session</button>
-        </div>
-        
-        <p id="statusText"></p>
+    <div class="instructions">
+        <p><strong>Instructions:</strong></p>
+        <p><strong>For iPad:</strong> Open the Display View and place your iPad where it can be easily seen.</p>
+        <p><strong>For iPhone:</strong> Open the Controller View to start and reset the countdown remotely.</p>
+        <p>The timer will flash red for the last 3 seconds and display "STOP" when it reaches zero.</p>
     </div>
-
-    <script>
-        // DOM Elements
-        const countdownElement = document.getElementById('countdown');
-        const startButton = document.getElementById('startButton');
-        const resetButton = document.getElementById('resetButton');
-        const setupPanel = document.getElementById('setup');
-        const controllerButton = document.getElementById('controllerButton');
-        const displayButton = document.getElementById('displayButton');
-        const setupMode = document.getElementById('setupMode');
-        const controllerSetup = document.getElementById('controllerSetup');
-        const displaySetup = document.getElementById('displaySetup');
-        const generateUrlButton = document.getElementById('generateUrlButton');
-        const timerUrl = document.getElementById('timerUrl');
-        const continueButton = document.getElementById('continueButton');
-        const sessionInput = document.getElementById('sessionInput');
-        const joinSessionButton = document.getElementById('joinSessionButton');
-        const statusText = document.getElementById('statusText');
-        const statusElement = document.getElementById('status');
-        
-        // State variables
-        let countdown = 10;
-        let timer;
-        let isRunning = false;
-        let sessionId = null;
-        let isController = false;
-        let isDisplay = false;
-        let lastCommandTime = 0;
-        let lastCommand = null;
-        
-        // Check URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionParam = urlParams.get('session');
-        
-        if (sessionParam) {
-            // This is a display device with a session
-            sessionId = sessionParam;
-            isDisplay = true;
-            setupPanel.style.display = 'none';
-            document.body.classList.add('display-mode');
-            statusElement.textContent = `Display: ${sessionId}`;
-            statusElement.style.backgroundColor = 'rgba(0,128,0,0.5)';
-            
-            // Start polling for commands
-            startPolling();
-        }
-        
-        // Setup handlers
-        controllerButton.addEventListener('click', function() {
-            setupMode.style.display = 'none';
-            controllerSetup.style.display = 'block';
-        });
-        
-        displayButton.addEventListener('click', function() {
-            setupMode.style.display = 'none';
-            displaySetup.style.display = 'block';
-        });
-        
-        generateUrlButton.addEventListener('click', function() {
-            // Generate a random 6-digit session ID
-            sessionId = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // Create display URL
-            const baseUrl = window.location.href.split('?')[0];
-            const displayUrl = `${baseUrl}?session=${sessionId}`;
-            
-            // Show URL
-            timerUrl.textContent = displayUrl;
-            timerUrl.style.display = 'block';
-            
-            // Update instruction
-            generateUrlButton.style.display = 'none';
-            
-            // Try to copy to clipboard
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(displayUrl)
-                    .then(() => {
-                        statusText.textContent = "URL copied to clipboard!";
-                    })
-                    .catch(() => {
-                        statusText.textContent = "Please manually copy the URL above.";
-                    });
-            } else {
-                statusText.textContent = "Please manually copy the URL above.";
-            }
-        });
-        
-        continueButton.addEventListener('click', function() {
-            if (!sessionId) {
-                statusText.textContent = "Please generate a display URL first!";
-                return;
-            }
-            
-            isController = true;
-            setupPanel.style.display = 'none';
-            statusElement.textContent = `Controller: ${sessionId}`;
-            statusElement.style.backgroundColor = 'rgba(0,0,255,0.5)';
-        });
-        
-        joinSessionButton.addEventListener('click', function() {
-            const code = sessionInput.value.trim();
-            if (code && /^\d{6}$/.test(code)) {
-                sessionId = code;
-                isDisplay = true;
-                setupPanel.style.display = 'none';
-                document.body.classList.add('display-mode');
-                statusElement.textContent = `Display: ${sessionId}`;
-                statusElement.style.backgroundColor = 'rgba(0,128,0,0.5)';
-                
-                // Start polling for commands
-                startPolling();
-            } else {
-                statusText.textContent = "Please enter a valid 6-digit code";
-            }
-        });
-        
-        // Countdown functions
-        function updateDisplay() {
-            countdownElement.textContent = countdown;
-            
-            // Add warning class for final 3 seconds
-            if (countdown <= 3) {
-                countdownElement.classList.add('warning');
-            } else {
-                countdownElement.classList.remove('warning');
-            }
-        }
-        
-        function startCountdown() {
-            if (isRunning) return;
-            
-            // Store command for display device to pick up
-            if (isController && sessionId) {
-                const commandData = {
-                    action: 'start',
-                    timestamp: Date.now(),
-                    session: sessionId
-                };
-                
-                // Store in URL fragment
-                window.location.hash = btoa(JSON.stringify(commandData));
-                lastCommandTime = commandData.timestamp;
-                lastCommand = 'start';
-            }
-            
-            startCountdownSequence();
-        }
-        
-        function startCountdownSequence() {
-            isRunning = true;
-            countdown = 10;
-            updateDisplay();
-            
-            timer = setInterval(() => {
-                countdown--;
-                updateDisplay();
-                
-                if (countdown <= 0) {
-                    clearInterval(timer);
-                    isRunning = false;
-                    setTimeout(() => {
-                        resetCountdown(true);
-                    }, 1000);
-                }
-            }, 1000);
-        }
-        
-        function resetCountdown(automatic = false) {
-            clearInterval(timer);
-            isRunning = false;
-            countdown = 10;
-            updateDisplay();
-            
-            // Store command for display device to pick up
-            if (isController && sessionId && !automatic) {
-                const commandData = {
-                    action: 'reset',
-                    timestamp: Date.now(),
-                    session: sessionId
-                };
-                
-                // Store in URL fragment
-                window.location.hash = btoa(JSON.stringify(commandData));
-                lastCommandTime = commandData.timestamp;
-                lastCommand = 'reset';
-            }
-        }
-        
-        // Polling for commands (for display device)
-        function startPolling() {
-            setInterval(() => {
-                if (!isDisplay || !sessionId) return;
-                
-                // Create a temporary image to fetch the controller page
-                // This is a technique to check the hash fragment of another page
-                const img = new Image();
-                const timestamp = Date.now(); // Prevent caching
-                img.src = `${window.location.origin}${window.location.pathname}?controller=1&session=${sessionId}&t=${timestamp}#polling`;
-                
-                // Check for hash changes
-                window.addEventListener('hashchange', processHashCommand);
-                
-                // Also try to process hash right away
-                processHashCommand();
-                
-            }, 1000);
-        }
-        
-        function processHashCommand() {
-            if (!window.location.hash || window.location.hash === '#polling') return;
-            
-            try {
-                // Decode the command from the hash
-                const hashData = window.location.hash.substring(1); // Remove the # symbol
-                const decodedData = atob(hashData);
-                const commandData = JSON.parse(decodedData);
-                
-                // Verify this is for our session
-                if (commandData.session !== sessionId) return;
-                
-                // Verify we haven't processed this command already (based on timestamp)
-                if (commandData.timestamp <= lastCommandTime) return;
-                
-                lastCommandTime = commandData.timestamp;
-                
-                // Process the command
-                if (commandData.action === 'start' && !isRunning) {
-                    // Calculate time since command was issued
-                    const delay = (Date.now() - commandData.timestamp) / 1000;
-                    const adjustedCount = Math.max(1, 10 - Math.floor(delay));
-                    
-                    // Start countdown with adjusted time
-                    isRunning = true;
-                    countdown = adjustedCount;
-                    updateDisplay();
-                    
-                    timer = setInterval(() => {
-                        countdown--;
-                        updateDisplay();
-                        
-                        if (countdown <= 0) {
-                            clearInterval(timer);
-                            isRunning = false;
-                            setTimeout(() => {
-                                resetCountdown(true);
-                            }, 1000);
-                        }
-                    }, 1000);
-                    
-                } else if (commandData.action === 'reset') {
-                    resetCountdown(true);
-                }
-                
-                // Clear hash after processing
-                history.replaceState(null, null, ' ');
-                
-            } catch (error) {
-                console.error('Error processing command:', error);
-            }
-        }
-        
-        // Event listeners
-        startButton.addEventListener('click', startCountdown);
-        resetButton.addEventListener('click', () => resetCountdown(false));
-        
-        // Check hash on page load
-        if (isDisplay) {
-            processHashCommand();
-        }
-    </script>
 </body>
 </html>
