@@ -56,13 +56,61 @@
             margin: 0 10px;
         }
         
-        #debugInfo {
+        #setup {
             position: fixed;
-            bottom: 5px;
-            left: 5px;
-            font-size: 10px;
-            color: gray;
-            z-index: 1000;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+        }
+        
+        #sessionInput {
+            padding: 10px;
+            font-size: 18px;
+            width: 80%;
+            max-width: 300px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        #joinSessionButton {
+            margin-bottom: 20px;
+        }
+        
+        #statusText {
+            color: white;
+            text-align: center;
+            max-width: 80%;
+            margin-top: 10px;
+        }
+        
+        #status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            font-size: 12px;
+            color: white;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 15px;
+        }
+        
+        #timerUrl {
+            word-break: break-all;
+            color: #007AFF;
+            background-color: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+            display: none;
+            text-align: center;
         }
         
         .display-mode #controls {
@@ -71,73 +119,161 @@
     </style>
 </head>
 <body>
+    <div id="status">Disconnected</div>
     <div id="countdown">10</div>
     
     <div id="controls">
         <button id="startButton">Start Countdown</button>
         <button id="resetButton">Reset</button>
-        <button id="generateLinkButton">Generate Display Link</button>
     </div>
     
-    <div id="debugInfo"></div>
+    <div id="setup">
+        <h2 style="color: white; margin-bottom: 20px;">Timer Setup</h2>
+        
+        <div id="setupMode">
+            <button id="controllerButton" style="margin-bottom: 15px; width: 200px;">Controller (iPhone)</button>
+            <button id="displayButton" style="width: 200px;">Display (iPad)</button>
+        </div>
+        
+        <div id="controllerSetup" style="display: none; text-align: center;">
+            <p id="instructionText" style="color: white; margin-bottom: 20px;">
+                Generate a unique URL for your display device:
+            </p>
+            <button id="generateUrlButton">Generate Display URL</button>
+            <div id="timerUrl"></div>
+            <p id="copyText" style="color: white; margin-top: 15px;">
+                Copy this URL to your iPad and open it in a browser.
+            </p>
+            <button id="continueButton" style="margin-top: 15px;">Continue to Controller</button>
+        </div>
+        
+        <div id="displaySetup" style="display: none; text-align: center;">
+            <p style="color: white; margin-bottom: 20px;">
+                Enter the Display Code from your controller:
+            </p>
+            <input type="text" id="sessionInput" placeholder="Enter 6-digit code" maxlength="6">
+            <button id="joinSessionButton">Join Display Session</button>
+        </div>
+        
+        <p id="statusText"></p>
+    </div>
 
     <script>
-        // Debug output
-        const debugInfoElement = document.getElementById('debugInfo');
-        
-        function showDebug(message) {
-            if (debugInfoElement) {
-                debugInfoElement.innerHTML += message + '<br>';
-                // Limit debug messages to the last 10
-                const lines = debugInfoElement.innerHTML.split('<br>');
-                if (lines.length > 10) {
-                    debugInfoElement.innerHTML = lines.slice(lines.length - 10).join('<br>');
-                }
-            }
-        }
-        
-        // Timer functionality
-        let countdown = 10;
-        let timer;
-        let isRunning = false;
-        let startTime = 0;
-        
+        // DOM Elements
         const countdownElement = document.getElementById('countdown');
         const startButton = document.getElementById('startButton');
         const resetButton = document.getElementById('resetButton');
-        const generateLinkButton = document.getElementById('generateLinkButton');
+        const setupPanel = document.getElementById('setup');
+        const controllerButton = document.getElementById('controllerButton');
+        const displayButton = document.getElementById('displayButton');
+        const setupMode = document.getElementById('setupMode');
+        const controllerSetup = document.getElementById('controllerSetup');
+        const displaySetup = document.getElementById('displaySetup');
+        const generateUrlButton = document.getElementById('generateUrlButton');
+        const timerUrl = document.getElementById('timerUrl');
+        const continueButton = document.getElementById('continueButton');
+        const sessionInput = document.getElementById('sessionInput');
+        const joinSessionButton = document.getElementById('joinSessionButton');
+        const statusText = document.getElementById('statusText');
+        const statusElement = document.getElementById('status');
+        
+        // State variables
+        let countdown = 10;
+        let timer;
+        let isRunning = false;
+        let sessionId = null;
+        let isController = false;
+        let isDisplay = false;
+        let lastCommandTime = 0;
+        let lastCommand = null;
         
         // Check URL parameters
-        function checkUrlParams() {
-            const urlParams = new URLSearchParams(window.location.search);
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionParam = urlParams.get('session');
+        
+        if (sessionParam) {
+            // This is a display device with a session
+            sessionId = sessionParam;
+            isDisplay = true;
+            setupPanel.style.display = 'none';
+            document.body.classList.add('display-mode');
+            statusElement.textContent = `Display: ${sessionId}`;
+            statusElement.style.backgroundColor = 'rgba(0,128,0,0.5)';
             
-            // Check if this is display mode
-            if (urlParams.get('mode') === 'display') {
-                document.body.classList.add('display-mode');
-                showDebug("Display mode active");
-            }
-            
-            // Check for a start command with timestamp
-            const startParam = urlParams.get('start');
-            if (startParam) {
-                const startTimestamp = parseInt(startParam);
-                startTime = startTimestamp;
-                
-                // Calculate how many seconds have passed since the start command
-                const secondsElapsed = Math.floor((Date.now() - startTimestamp) / 1000);
-                
-                if (secondsElapsed < 10) {
-                    // Start countdown with adjusted time
-                    countdown = 10 - secondsElapsed;
-                    startCountdownAt(countdown);
-                    showDebug(`Starting countdown at ${countdown} (${secondsElapsed}s elapsed)`);
-                } else {
-                    showDebug("Start command expired");
-                    resetCountdown();
-                }
-            }
+            // Start polling for commands
+            startPolling();
         }
         
+        // Setup handlers
+        controllerButton.addEventListener('click', function() {
+            setupMode.style.display = 'none';
+            controllerSetup.style.display = 'block';
+        });
+        
+        displayButton.addEventListener('click', function() {
+            setupMode.style.display = 'none';
+            displaySetup.style.display = 'block';
+        });
+        
+        generateUrlButton.addEventListener('click', function() {
+            // Generate a random 6-digit session ID
+            sessionId = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Create display URL
+            const baseUrl = window.location.href.split('?')[0];
+            const displayUrl = `${baseUrl}?session=${sessionId}`;
+            
+            // Show URL
+            timerUrl.textContent = displayUrl;
+            timerUrl.style.display = 'block';
+            
+            // Update instruction
+            generateUrlButton.style.display = 'none';
+            
+            // Try to copy to clipboard
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(displayUrl)
+                    .then(() => {
+                        statusText.textContent = "URL copied to clipboard!";
+                    })
+                    .catch(() => {
+                        statusText.textContent = "Please manually copy the URL above.";
+                    });
+            } else {
+                statusText.textContent = "Please manually copy the URL above.";
+            }
+        });
+        
+        continueButton.addEventListener('click', function() {
+            if (!sessionId) {
+                statusText.textContent = "Please generate a display URL first!";
+                return;
+            }
+            
+            isController = true;
+            setupPanel.style.display = 'none';
+            statusElement.textContent = `Controller: ${sessionId}`;
+            statusElement.style.backgroundColor = 'rgba(0,0,255,0.5)';
+        });
+        
+        joinSessionButton.addEventListener('click', function() {
+            const code = sessionInput.value.trim();
+            if (code && /^\d{6}$/.test(code)) {
+                sessionId = code;
+                isDisplay = true;
+                setupPanel.style.display = 'none';
+                document.body.classList.add('display-mode');
+                statusElement.textContent = `Display: ${sessionId}`;
+                statusElement.style.backgroundColor = 'rgba(0,128,0,0.5)';
+                
+                // Start polling for commands
+                startPolling();
+            } else {
+                statusText.textContent = "Please enter a valid 6-digit code";
+            }
+        });
+        
+        // Countdown functions
         function updateDisplay() {
             countdownElement.textContent = countdown;
             
@@ -152,24 +288,26 @@
         function startCountdown() {
             if (isRunning) return;
             
-            // Set start time
-            startTime = Date.now();
-            startCountdownAt(10);
-            
-            // Update URL for display device to sync with
-            if (window.history && window.history.replaceState) {
-                const newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('start', startTime);
-                window.history.replaceState({}, '', newUrl);
-                showDebug(`URL updated with start=${startTime}`);
+            // Store command for display device to pick up
+            if (isController && sessionId) {
+                const commandData = {
+                    action: 'start',
+                    timestamp: Date.now(),
+                    session: sessionId
+                };
+                
+                // Store in URL fragment
+                window.location.hash = btoa(JSON.stringify(commandData));
+                lastCommandTime = commandData.timestamp;
+                lastCommand = 'start';
             }
+            
+            startCountdownSequence();
         }
         
-        function startCountdownAt(startSeconds) {
-            if (isRunning) return;
-            
+        function startCountdownSequence() {
             isRunning = true;
-            countdown = startSeconds;
+            countdown = 10;
             updateDisplay();
             
             timer = setInterval(() => {
@@ -180,66 +318,114 @@
                     clearInterval(timer);
                     isRunning = false;
                     setTimeout(() => {
-                        resetCountdown();
+                        resetCountdown(true);
                     }, 1000);
                 }
             }, 1000);
         }
         
-        function resetCountdown() {
+        function resetCountdown(automatic = false) {
             clearInterval(timer);
             isRunning = false;
             countdown = 10;
             updateDisplay();
             
-            // Update URL to remove start parameter
-            if (window.history && window.history.replaceState) {
-                const newUrl = new URL(window.location.href);
-                newUrl.searchParams.delete('start');
-                window.history.replaceState({}, '', newUrl);
-                showDebug("URL reset");
+            // Store command for display device to pick up
+            if (isController && sessionId && !automatic) {
+                const commandData = {
+                    action: 'reset',
+                    timestamp: Date.now(),
+                    session: sessionId
+                };
+                
+                // Store in URL fragment
+                window.location.hash = btoa(JSON.stringify(commandData));
+                lastCommandTime = commandData.timestamp;
+                lastCommand = 'reset';
             }
         }
         
-        // Generate a sharable link for the display
-        function generateDisplayLink() {
-            const baseUrl = window.location.href.split('?')[0];
-            const displayUrl = `${baseUrl}?mode=display`;
+        // Polling for commands (for display device)
+        function startPolling() {
+            setInterval(() => {
+                if (!isDisplay || !sessionId) return;
+                
+                // Create a temporary image to fetch the controller page
+                // This is a technique to check the hash fragment of another page
+                const img = new Image();
+                const timestamp = Date.now(); // Prevent caching
+                img.src = `${window.location.origin}${window.location.pathname}?controller=1&session=${sessionId}&t=${timestamp}#polling`;
+                
+                // Check for hash changes
+                window.addEventListener('hashchange', processHashCommand);
+                
+                // Also try to process hash right away
+                processHashCommand();
+                
+            }, 1000);
+        }
+        
+        function processHashCommand() {
+            if (!window.location.hash || window.location.hash === '#polling') return;
             
-            // Create temporary input for copying
-            const tempInput = document.createElement('input');
-            document.body.appendChild(tempInput);
-            tempInput.value = displayUrl;
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            
-            showDebug(`Display link copied to clipboard: ${displayUrl}`);
-            alert("Display link copied to clipboard!\n\nOpen this link on your iPad. Then press Start on this device to control the countdown.");
+            try {
+                // Decode the command from the hash
+                const hashData = window.location.hash.substring(1); // Remove the # symbol
+                const decodedData = atob(hashData);
+                const commandData = JSON.parse(decodedData);
+                
+                // Verify this is for our session
+                if (commandData.session !== sessionId) return;
+                
+                // Verify we haven't processed this command already (based on timestamp)
+                if (commandData.timestamp <= lastCommandTime) return;
+                
+                lastCommandTime = commandData.timestamp;
+                
+                // Process the command
+                if (commandData.action === 'start' && !isRunning) {
+                    // Calculate time since command was issued
+                    const delay = (Date.now() - commandData.timestamp) / 1000;
+                    const adjustedCount = Math.max(1, 10 - Math.floor(delay));
+                    
+                    // Start countdown with adjusted time
+                    isRunning = true;
+                    countdown = adjustedCount;
+                    updateDisplay();
+                    
+                    timer = setInterval(() => {
+                        countdown--;
+                        updateDisplay();
+                        
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            isRunning = false;
+                            setTimeout(() => {
+                                resetCountdown(true);
+                            }, 1000);
+                        }
+                    }, 1000);
+                    
+                } else if (commandData.action === 'reset') {
+                    resetCountdown(true);
+                }
+                
+                // Clear hash after processing
+                history.replaceState(null, null, ' ');
+                
+            } catch (error) {
+                console.error('Error processing command:', error);
+            }
         }
         
         // Event listeners
         startButton.addEventListener('click', startCountdown);
-        resetButton.addEventListener('click', resetCountdown);
-        generateLinkButton.addEventListener('click', generateDisplayLink);
+        resetButton.addEventListener('click', () => resetCountdown(false));
         
-        // Check for URL parameters on page load
-        checkUrlParams();
-        
-        // Refresh sync every few seconds to stay in sync
-        setInterval(() => {
-            if (startTime > 0 && isRunning) {
-                const secondsElapsed = Math.floor((Date.now() - startTime) / 1000);
-                const expectedCount = 10 - secondsElapsed;
-                
-                // If our countdown is off by more than 1 second, adjust it
-                if (Math.abs(countdown - expectedCount) > 1 && expectedCount > 0) {
-                    countdown = expectedCount;
-                    updateDisplay();
-                    showDebug(`Re-synced countdown to ${countdown}`);
-                }
-            }
-        }, 2000);
+        // Check hash on page load
+        if (isDisplay) {
+            processHashCommand();
+        }
     </script>
 </body>
 </html>
