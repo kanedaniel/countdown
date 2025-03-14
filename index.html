@@ -12,15 +12,12 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            /* CUSTOMIZATION: Change background color here */
             background-color: #000000;
             overflow: hidden;
         }
         
         #countdown {
-            /* CUSTOMIZATION: Change text color here */
             color: #FFFFFF;
-            /* CUSTOMIZATION: Change size here (larger number = bigger text) */
             font-size: 60vw;
             font-weight: bold;
             text-align: center;
@@ -28,38 +25,6 @@
             margin: 0;
             padding: 0;
         }
-        
-        /* CUSTOMIZATION: Choose background effect by uncommenting ONE of these sections */
-        
-        /* Option 1: Rainbow gradient background */
-        /*
-        body {
-            background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-        }
-        
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        */
-        
-        /* Option 2: Pulsing number effect */
-        /*
-        #countdown {
-            animation: pulse 2s ease infinite;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        */
-        
-        /* Option 3: Red flashing on final 3 seconds */
         
         .warning {
             animation: flash 0.5s ease infinite;
@@ -71,8 +36,6 @@
             100% { color: #FFFFFF; }
         }
         
-        
-        /* Control panel (only for iPhone) */
         #controls {
             position: fixed;
             bottom: 20px;
@@ -93,7 +56,15 @@
             margin: 0 10px;
         }
         
-        /* Hide controls on the display device */
+        #debugInfo {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            font-size: 10px;
+            color: gray;
+            z-index: 1000;
+        }
+        
         .display-mode #controls {
             display: none;
         }
@@ -105,41 +76,66 @@
     <div id="controls">
         <button id="startButton">Start Countdown</button>
         <button id="resetButton">Reset</button>
-        <button id="displayModeButton">Open Display View</button>
+        <button id="generateLinkButton">Generate Display Link</button>
     </div>
     
-    <!-- Debug info area -->
-    <div id="debugInfo" style="position: fixed; bottom: 5px; left: 5px; font-size: 10px; color: gray; z-index: 1000;"></div>
+    <div id="debugInfo"></div>
 
     <script>
-        // Debug localStorage availability
+        // Debug output
         const debugInfoElement = document.getElementById('debugInfo');
         
-        // Show debug info on the page instead of console
         function showDebug(message) {
             if (debugInfoElement) {
                 debugInfoElement.innerHTML += message + '<br>';
+                // Limit debug messages to the last 10
+                const lines = debugInfoElement.innerHTML.split('<br>');
+                if (lines.length > 10) {
+                    debugInfoElement.innerHTML = lines.slice(lines.length - 10).join('<br>');
+                }
             }
-            // Also log to console if available
-            console.log(message);
         }
         
-        showDebug("localStorage available: " + (typeof localStorage !== 'undefined'));
-        
-        // Basic countdown functionality
+        // Timer functionality
         let countdown = 10;
         let timer;
         let isRunning = false;
+        let startTime = 0;
         
         const countdownElement = document.getElementById('countdown');
         const startButton = document.getElementById('startButton');
         const resetButton = document.getElementById('resetButton');
-        const displayModeButton = document.getElementById('displayModeButton');
+        const generateLinkButton = document.getElementById('generateLinkButton');
         
-        // Check for display mode in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('mode') === 'display') {
-            document.body.classList.add('display-mode');
+        // Check URL parameters
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check if this is display mode
+            if (urlParams.get('mode') === 'display') {
+                document.body.classList.add('display-mode');
+                showDebug("Display mode active");
+            }
+            
+            // Check for a start command with timestamp
+            const startParam = urlParams.get('start');
+            if (startParam) {
+                const startTimestamp = parseInt(startParam);
+                startTime = startTimestamp;
+                
+                // Calculate how many seconds have passed since the start command
+                const secondsElapsed = Math.floor((Date.now() - startTimestamp) / 1000);
+                
+                if (secondsElapsed < 10) {
+                    // Start countdown with adjusted time
+                    countdown = 10 - secondsElapsed;
+                    startCountdownAt(countdown);
+                    showDebug(`Starting countdown at ${countdown} (${secondsElapsed}s elapsed)`);
+                } else {
+                    showDebug("Start command expired");
+                    resetCountdown();
+                }
+            }
         }
         
         function updateDisplay() {
@@ -156,8 +152,24 @@
         function startCountdown() {
             if (isRunning) return;
             
+            // Set start time
+            startTime = Date.now();
+            startCountdownAt(10);
+            
+            // Update URL for display device to sync with
+            if (window.history && window.history.replaceState) {
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('start', startTime);
+                window.history.replaceState({}, '', newUrl);
+                showDebug(`URL updated with start=${startTime}`);
+            }
+        }
+        
+        function startCountdownAt(startSeconds) {
+            if (isRunning) return;
+            
             isRunning = true;
-            countdown = 10;
+            countdown = startSeconds;
             updateDisplay();
             
             timer = setInterval(() => {
@@ -179,83 +191,55 @@
             isRunning = false;
             countdown = 10;
             updateDisplay();
+            
+            // Update URL to remove start parameter
+            if (window.history && window.history.replaceState) {
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.delete('start');
+                window.history.replaceState({}, '', newUrl);
+                showDebug("URL reset");
+            }
         }
         
+        // Generate a sharable link for the display
+        function generateDisplayLink() {
+            const baseUrl = window.location.href.split('?')[0];
+            const displayUrl = `${baseUrl}?mode=display`;
+            
+            // Create temporary input for copying
+            const tempInput = document.createElement('input');
+            document.body.appendChild(tempInput);
+            tempInput.value = displayUrl;
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            showDebug(`Display link copied to clipboard: ${displayUrl}`);
+            alert("Display link copied to clipboard!\n\nOpen this link on your iPad. Then press Start on this device to control the countdown.");
+        }
+        
+        // Event listeners
         startButton.addEventListener('click', startCountdown);
         resetButton.addEventListener('click', resetCountdown);
+        generateLinkButton.addEventListener('click', generateDisplayLink);
         
-        // Display mode button - opens a new window for display
-        displayModeButton.addEventListener('click', function() {
-            const displayUrl = window.location.href.split('?')[0] + '?mode=display';
-            window.open(displayUrl, '_blank');
-        });
+        // Check for URL parameters on page load
+        checkUrlParams();
         
-        // More reliable sync using both localStorage and periodic checking
-        function checkSyncCommand() {
-            try {
-                const syncData = localStorage.getItem('countdownSync');
-                if (syncData) {
-                    const data = JSON.parse(syncData);
-                    // Only process commands that are recent (within last 5 seconds)
-                    if (data.timestamp && (Date.now() - data.timestamp < 5000)) {
-                        if (data.action === 'start' && !isRunning) {
-                            showDebug('Received start command: ' + new Date().toLocaleTimeString());
-                            startCountdown();
-                        } else if (data.action === 'reset') {
-                            showDebug('Received reset command: ' + new Date().toLocaleTimeString());
-                            resetCountdown();
-                        }
-                    }
-                }
-            } catch (e) {
-                showDebug('Error checking sync: ' + e.message);
-            }
-        }
-        
-        // Check for sync commands every 1 second
-        setInterval(checkSyncCommand, 1000);
-        
-        // Also listen for storage events (may work in some browsers)
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'countdownSync') {
-                try {
-                    showDebug('Storage event received: ' + new Date().toLocaleTimeString());
-                    const data = JSON.parse(e.newValue);
-                    if (data.action === 'start') {
-                        startCountdown();
-                    } else if (data.action === 'reset') {
-                        resetCountdown();
-                    }
-                } catch (e) {
-                    showDebug('Error processing storage event: ' + e.message);
+        // Refresh sync every few seconds to stay in sync
+        setInterval(() => {
+            if (startTime > 0 && isRunning) {
+                const secondsElapsed = Math.floor((Date.now() - startTime) / 1000);
+                const expectedCount = 10 - secondsElapsed;
+                
+                // If our countdown is off by more than 1 second, adjust it
+                if (Math.abs(countdown - expectedCount) > 1 && expectedCount > 0) {
+                    countdown = expectedCount;
+                    updateDisplay();
+                    showDebug(`Re-synced countdown to ${countdown}`);
                 }
             }
-        });
-        
-        // Update localStorage to sync between devices
-        startButton.addEventListener('click', function() {
-            try {
-                localStorage.setItem('countdownSync', JSON.stringify({
-                    action: 'start',
-                    timestamp: Date.now()
-                }));
-                showDebug('Start command sent: ' + new Date().toLocaleTimeString());
-            } catch (e) {
-                showDebug('Error sending start command: ' + e.message);
-            }
-        });
-        
-        resetButton.addEventListener('click', function() {
-            try {
-                localStorage.setItem('countdownSync', JSON.stringify({
-                    action: 'reset',
-                    timestamp: Date.now()
-                }));
-                showDebug('Reset command sent: ' + new Date().toLocaleTimeString());
-            } catch (e) {
-                showDebug('Error sending reset command: ' + e.message);
-            }
-        });
+        }, 2000);
     </script>
 </body>
 </html>
