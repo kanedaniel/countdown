@@ -107,10 +107,24 @@
         <button id="resetButton">Reset</button>
         <button id="displayModeButton">Open Display View</button>
     </div>
+    
+    <!-- Debug info area -->
+    <div id="debugInfo" style="position: fixed; bottom: 5px; left: 5px; font-size: 10px; color: gray; z-index: 1000;"></div>
 
     <script>
         // Debug localStorage availability
-        console.log("localStorage available:", typeof localStorage !== 'undefined');
+        const debugInfoElement = document.getElementById('debugInfo');
+        
+        // Show debug info on the page instead of console
+        function showDebug(message) {
+            if (debugInfoElement) {
+                debugInfoElement.innerHTML += message + '<br>';
+            }
+            // Also log to console if available
+            console.log(message);
+        }
+        
+        showDebug("localStorage available: " + (typeof localStorage !== 'undefined'));
         
         // Basic countdown functionality
         let countdown = 10;
@@ -185,14 +199,16 @@
                     // Only process commands that are recent (within last 5 seconds)
                     if (data.timestamp && (Date.now() - data.timestamp < 5000)) {
                         if (data.action === 'start' && !isRunning) {
+                            showDebug('Received start command: ' + new Date().toLocaleTimeString());
                             startCountdown();
                         } else if (data.action === 'reset') {
+                            showDebug('Received reset command: ' + new Date().toLocaleTimeString());
                             resetCountdown();
                         }
                     }
                 }
             } catch (e) {
-                console.error('Error checking sync:', e);
+                showDebug('Error checking sync: ' + e.message);
             }
         }
         
@@ -203,6 +219,7 @@
         window.addEventListener('storage', function(e) {
             if (e.key === 'countdownSync') {
                 try {
+                    showDebug('Storage event received: ' + new Date().toLocaleTimeString());
                     const data = JSON.parse(e.newValue);
                     if (data.action === 'start') {
                         startCountdown();
@@ -210,7 +227,7 @@
                         resetCountdown();
                     }
                 } catch (e) {
-                    console.error('Error processing storage event:', e);
+                    showDebug('Error processing storage event: ' + e.message);
                 }
             }
         });
@@ -222,9 +239,9 @@
                     action: 'start',
                     timestamp: Date.now()
                 }));
-                console.log('Start command sent');
+                showDebug('Start command sent: ' + new Date().toLocaleTimeString());
             } catch (e) {
-                console.error('Error sending start command:', e);
+                showDebug('Error sending start command: ' + e.message);
             }
         });
         
@@ -234,9 +251,9 @@
                     action: 'reset',
                     timestamp: Date.now()
                 }));
-                console.log('Reset command sent');
+                showDebug('Reset command sent: ' + new Date().toLocaleTimeString());
             } catch (e) {
-                console.error('Error sending reset command:', e);
+                showDebug('Error sending reset command: ' + e.message);
             }
         });
     </script>
