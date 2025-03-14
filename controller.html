@@ -1,1 +1,94 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+        
+        .title {
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        button {
+            padding: 16px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: none;
+            background-color: #0d54ff;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+        
+        #start-button {
+            background-color: #28a745;
+        }
+        
+        #reset-button {
+            background-color: #dc3545;
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Timer Remote Control</div>
+    
+    <div class="button-container">
+        <button id="start-button">START 10s COUNTDOWN</button>
+        <button id="reset-button">RESET</button>
+    </div>
+    
+    <div id="status" class="status connected">Display connected</div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Configuration -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Controller Logic -->
+    <script src="controller.js"></script>
+</body>
+</html>
