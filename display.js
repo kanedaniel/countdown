@@ -7,8 +7,10 @@ const stopMessageElement = document.getElementById('stop-message');
 
 // Variables to track the countdown
 let countdownTimer = null;
+let flashTimer = null;
 let startTime = 0;
 let duration = 10000; // 10 seconds in milliseconds
+let isRed = false;
 
 // Listen for changes in the countdown state
 countdownRef.on('value', (snapshot) => {
@@ -38,12 +40,13 @@ countdownRef.on('value', (snapshot) => {
 function startCountdown(startTimeVal, durationVal) {
     // Clear any existing countdown
     clearInterval(countdownTimer);
+    clearInterval(flashTimer);
     
     startTime = startTimeVal;
     duration = durationVal;
     
     // Show countdown, hide stop message
-    countdownElement.style.display = 'block';
+    countdownElement.style.display = 'flex';
     stopMessageElement.style.display = 'none';
     
     // Start the countdown ticker
@@ -61,8 +64,9 @@ function updateCountdown() {
     if (remainingTime <= 0) {
         // Time's up!
         clearInterval(countdownTimer);
+        clearInterval(flashTimer);
         countdownElement.style.display = 'none';
-        stopMessageElement.style.display = 'block';
+        stopMessageElement.style.display = 'flex';
         return;
     }
     
@@ -70,19 +74,36 @@ function updateCountdown() {
     const remainingSeconds = Math.ceil(remainingTime / 1000);
     countdownElement.textContent = remainingSeconds;
     
-    // Flash red in the last 3 seconds
+    // Manage flashing red in the last 3 seconds
     if (remainingSeconds <= 3) {
-        countdownElement.classList.toggle('flash-red');
+        if (!flashTimer) {
+            // Start flashing with 250ms interval
+            flashTimer = setInterval(() => {
+                isRed = !isRed;
+                if (isRed) {
+                    countdownElement.classList.add('flash-red');
+                } else {
+                    countdownElement.classList.remove('flash-red');
+                }
+            }, 250); // Flash every 250ms
+        }
     } else {
-        countdownElement.classList.remove('flash-red');
+        // Stop flashing if we're not in the last 3 seconds
+        if (flashTimer) {
+            clearInterval(flashTimer);
+            flashTimer = null;
+            countdownElement.classList.remove('flash-red');
+        }
     }
 }
 
 // Function to reset the countdown
 function resetCountdown() {
     clearInterval(countdownTimer);
+    clearInterval(flashTimer);
     countdownElement.textContent = '10';
-    countdownElement.style.display = 'block';
+    countdownElement.style.display = 'flex';
     countdownElement.classList.remove('flash-red');
     stopMessageElement.style.display = 'none';
+    isRed = false;
 }
