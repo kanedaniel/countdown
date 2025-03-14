@@ -173,31 +173,68 @@
             window.open(displayUrl, '_blank');
         });
         
-        // Sync functionality between devices using localStorage
+        // More reliable sync using both localStorage and periodic checking
+        function checkSyncCommand() {
+            try {
+                const syncData = localStorage.getItem('countdownSync');
+                if (syncData) {
+                    const data = JSON.parse(syncData);
+                    // Only process commands that are recent (within last 5 seconds)
+                    if (data.timestamp && (Date.now() - data.timestamp < 5000)) {
+                        if (data.action === 'start' && !isRunning) {
+                            startCountdown();
+                        } else if (data.action === 'reset') {
+                            resetCountdown();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error checking sync:', e);
+            }
+        }
+        
+        // Check for sync commands every 1 second
+        setInterval(checkSyncCommand, 1000);
+        
+        // Also listen for storage events (may work in some browsers)
         window.addEventListener('storage', function(e) {
             if (e.key === 'countdownSync') {
-                const data = JSON.parse(e.newValue);
-                if (data.action === 'start') {
-                    startCountdown();
-                } else if (data.action === 'reset') {
-                    resetCountdown();
+                try {
+                    const data = JSON.parse(e.newValue);
+                    if (data.action === 'start') {
+                        startCountdown();
+                    } else if (data.action === 'reset') {
+                        resetCountdown();
+                    }
+                } catch (e) {
+                    console.error('Error processing storage event:', e);
                 }
             }
         });
         
         // Update localStorage to sync between devices
         startButton.addEventListener('click', function() {
-            localStorage.setItem('countdownSync', JSON.stringify({
-                action: 'start',
-                timestamp: Date.now()
-            }));
+            try {
+                localStorage.setItem('countdownSync', JSON.stringify({
+                    action: 'start',
+                    timestamp: Date.now()
+                }));
+                console.log('Start command sent');
+            } catch (e) {
+                console.error('Error sending start command:', e);
+            }
         });
         
         resetButton.addEventListener('click', function() {
-            localStorage.setItem('countdownSync', JSON.stringify({
-                action: 'reset',
-                timestamp: Date.now()
-            }));
+            try {
+                localStorage.setItem('countdownSync', JSON.stringify({
+                    action: 'reset',
+                    timestamp: Date.now()
+                }));
+                console.log('Reset command sent');
+            } catch (e) {
+                console.error('Error sending reset command:', e);
+            }
         });
     </script>
 </body>
