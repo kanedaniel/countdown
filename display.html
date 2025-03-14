@@ -1,67 +1,109 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Countdown Display</title>
-    <style>
-        body {
-            background-color: #0d54ff;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
-        
-        #countdown {
-            font-size: 40vw; /* Increased from 20vw */
-            font-weight: 900; /* Extra bold */
-            color: white;
-            text-align: center;
-            transition: color 0.25s; /* Slowed down transition */
-            line-height: 1; /* Tighter line height */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-        }
-        
-        .flash-red {
-            color: red !important;
-        }
-        
-        #stop-message {
-            font-size: 40vw; /* Increased from 20vw */
-            font-weight: 900; /* Extra bold */
-            color: white;
-            display: none;
-            text-align: center;
-            line-height: 1; /* Tighter line height */
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-    </style>
-</head>
-<body>
-    <div id="countdown">10</div>
-    <div id="stop-message">STOP</div>
+// Reference to the countdown state in Firebase
+const countdownRef = database.ref('countdownState');
+
+// DOM elements
+const countdownElement = document.getElementById('countdown');
+const stopMessageElement = document.getElementById('stop-message');
+
+// Variables to track the countdown
+let countdownTimer = null;
+let flashTimer = null;
+let startTime = 0;
+let duration = 10000; // 10 seconds in milliseconds
+let isRed = false;
+
+// Listen for changes in the countdown state
+countdownRef.on('value', (snapshot) => {
+    const data = snapshot.val() || {};
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    // If there's no data yet, initialize it
+    if (!data.hasOwnProperty('isActive')) {
+        countdownRef.set({
+            isActive: false,
+            startTime: null,
+            duration: 10000,
+            resetSignal: 0
+        });
+        return;
+    }
     
-    <!-- Configuration -->
-    <script src="firebase-config.js"></script>
+    if (data.isActive && data.startTime) {
+        // Start the countdown
+        startCountdown(data.startTime, data.duration || 10000);
+    } else if (data.resetSignal !== undefined) {
+        // Reset the countdown
+        resetCountdown();
+    }
+});
+
+// Function to start the countdown
+function startCountdown(startTimeVal, durationVal) {
+    // Clear any existing countdown
+    clearInterval(countdownTimer);
+    clearInterval(flashTimer);
     
-    <!-- Display Logic -->
-    <script src="display.js"></script>
-</body>
-</html>
+    startTime = startTimeVal;
+    duration = durationVal;
+    
+    // Show countdown, hide stop message
+    countdownElement.style.display = 'flex';
+    stopMessageElement.style.display = 'none';
+    
+    // Start the countdown ticker
+    countdownTimer = setInterval(updateCountdown, 50);
+    updateCountdown();
+}
+
+// Function to update the countdown display
+function updateCountdown() {
+    // Calculate remaining time
+    const currentTime = Date.now();
+    const elapsedTime = currentTime - startTime;
+    const remainingTime = Math.max(0, duration - elapsedTime);
+    
+    if (remainingTime <= 0) {
+        // Time's up!
+        clearInterval(countdownTimer);
+        clearInterval(flashTimer);
+        countdownElement.style.display = 'none';
+        stopMessageElement.style.display = 'flex';
+        return;
+    }
+    
+    // Display the remaining time in seconds
+    const remainingSeconds = Math.ceil(remainingTime / 1000);
+    countdownElement.textContent = remainingSeconds;
+    
+    // Manage flashing red in the last 3 seconds
+    if (remainingSeconds <= 3) {
+        if (!flashTimer) {
+            // Start flashing with 250ms interval
+            flashTimer = setInterval(() => {
+                isRed = !isRed;
+                if (isRed) {
+                    countdownElement.classList.add('flash-red');
+                } else {
+                    countdownElement.classList.remove('flash-red');
+                }
+            }, 250); // Flash every 250ms
+        }
+    } else {
+        // Stop flashing if we're not in the last 3 seconds
+        if (flashTimer) {
+            clearInterval(flashTimer);
+            flashTimer = null;
+            countdownElement.classList.remove('flash-red');
+        }
+    }
+}
+
+// Function to reset the countdown
+function resetCountdown() {
+    clearInterval(countdownTimer);
+    clearInterval(flashTimer);
+    countdownElement.textContent = '10';
+    countdownElement.style.display = 'flex';
+    countdownElement.classList.remove('flash-red');
+    stopMessageElement.style.display = 'none';
+    isRed = false;
+}
